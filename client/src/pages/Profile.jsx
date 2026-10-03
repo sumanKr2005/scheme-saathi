@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useLanguage } from '../context/LanguageContext';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 function Profile() {
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -41,7 +43,7 @@ function Profile() {
 
     try {
       const response = await axios.post(
-        'http://localhost:5000/api/schemes/eligibility',
+        `${API_URL}/api/schemes/eligibility`,
         { profile }
       );
 

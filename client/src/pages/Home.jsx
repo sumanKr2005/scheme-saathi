@@ -5,13 +5,15 @@ import { useLanguage } from '../context/LanguageContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 function Home() {
   const { t, language } = useLanguage();
   const [schemeCount, setSchemeCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/schemes')
+    axios.get(`${API_URL}/api/schemes`)
       .then(res => {
         setSchemeCount(res.data.length);
         setLoading(false);

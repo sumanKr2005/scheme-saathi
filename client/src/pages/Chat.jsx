@@ -9,6 +9,8 @@ function Chat() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   const [messages, setMessages] = useState([
     {
       role: 'ai',
@@ -136,79 +138,79 @@ function Chat() {
     setLoading(true);
 
     try {
-  // Add empty AI message (will fill with streaming)
-  setMessages(prev => [...prev, {
-    role: 'ai',
-    text: '',
-    streaming: true
-  }]);
+      // Add empty AI message (will fill with streaming)
+      setMessages(prev => [...prev, {
+        role: 'ai',
+        text: '',
+        streaming: true
+      }]);
 
-  // Send last 6 messages as history for memory
-  const history = messages.slice(-6).map(m => ({
-    role: m.role,
-    text: m.text
-  }));
+      // Send last 6 messages as history for memory
+      const history = messages.slice(-6).map(m => ({
+        role: m.role,
+        text: m.text
+      }));
 
-  const response = await fetch('http://localhost:5000/api/ai/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message: userMessage,
-      language: msgLang,
-      history
-    })
-  });
+      const response = await fetch(`${API_URL}/api/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          language: msgLang,
+          history
+        })
+      });
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let fullText = '';
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
 
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
 
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split('\n');
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
 
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        try {
-          const data = JSON.parse(line.slice(6));
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
 
-          if (data.chunk) {
-            fullText += data.chunk;
-            setMessages(prev => {
-              const updated = [...prev];
-              const lastIdx = updated.length - 1;
-              updated[lastIdx] = { ...updated[lastIdx], text: fullText };
-              return updated;
-            });
-          }
+              if (data.chunk) {
+                fullText += data.chunk;
+                setMessages(prev => {
+                  const updated = [...prev];
+                  const lastIdx = updated.length - 1;
+                  updated[lastIdx] = { ...updated[lastIdx], text: fullText };
+                  return updated;
+                });
+              }
 
-          if (data.done) {
-            setFollowUps(data.followUps || []);
-            setMessages(prev => {
-              const updated = [...prev];
-              const lastIdx = updated.length - 1;
-              updated[lastIdx] = { ...updated[lastIdx], streaming: false };
-              return updated;
-            });
+              if (data.done) {
+                setFollowUps(data.followUps || []);
+                setMessages(prev => {
+                  const updated = [...prev];
+                  const lastIdx = updated.length - 1;
+                  updated[lastIdx] = { ...updated[lastIdx], streaming: false };
+                  return updated;
+                });
 
-            if (autoSpeak) {
-              setTimeout(() => speakText(fullText), 300);
+                if (autoSpeak) {
+                  setTimeout(() => speakText(fullText), 300);
+                }
+              }
+
+              if (data.error) {
+                throw new Error(data.error);
+              }
+            } catch (e) {
+              // Skip invalid JSON
             }
           }
-
-          if (data.error) {
-            throw new Error(data.error);
-          }
-        } catch (e) {
-          // Skip invalid JSON
         }
       }
-    }
-  }
-} catch (error) {
+    } catch (error) {
       const errorMsg = msgLang === 'hi'
         ? 'क्षमा करें, AI सेवा अभी व्यस्त है। कृपया कुछ देर बाद पुनः प्रयास करें।'
         : 'Sorry, AI service is busy. Please try again in a moment.';
