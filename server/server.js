@@ -18,8 +18,11 @@ const app = express();
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, curl, etc.)
-    // And allow any localhost port
-    if (!origin || /^http:\/\/localhost:\d+$/.test(origin)) {
+    // Allow any localhost port
+    // Allow Vercel production domain
+    if (!origin || 
+        /^http:\/\/localhost:\d+$/.test(origin) ||
+        /\.vercel\.app$/.test(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
